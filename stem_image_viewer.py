@@ -79,6 +79,8 @@ class STEMImageViewer(QWidget):
         layout.addWidget(self.coord_display, 7, 1)
         self.setLayout(layout)
 
+        self.rect_select_mode = False
+        
 
     def load_data(self):
         """
@@ -126,3 +128,25 @@ class STEMImageViewer(QWidget):
                                                   Qt.SmoothTransformation)
 
         self.image_label.setPixmap(self.pixmap)
+
+        
+    def keyPressEvent(self, event):
+        """
+        Handle key press events.
+        Activate rectangular selection mode when the Shift key is pressed.
+        """
+
+        if event.key() == Qt.Key_Shift:
+            self.rect_select_mode = True
+        super().keyPressEvent(event)
+
+
+    def keyReleaseEvent(self, event):
+        """
+        Handle key release events.
+        Deactivate rectangular selection mode when the Shift key is released.
+        """
+        if event.key() == Qt.Key_Shift:
+            self.rect_select_mode = False
+        super().keyReleaseEvent(event)
+        
