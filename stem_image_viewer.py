@@ -22,6 +22,7 @@ License:
     GPL-3.0 license
 """
 
+from diffraction_pattern_annotator import DPsAnnotator
 from PyQt5.QtWidgets import (
     QWidget,
     QLabel,
@@ -43,7 +44,7 @@ class STEMImageViewer(QWidget):
     An interactive viewer for visualizing 4D STEM data.
 
     This class provides a graphical interface to load 4D STEM data and display
-    a 2D virtual STEM images computed from this data. It allows users to
+    a 2D virtual STEM image computed from this data. It allows users to
     interact with the displayed image to select specific spatial scan points or
     define rectangular regions of interest.
 
@@ -151,6 +152,11 @@ class STEMImageViewer(QWidget):
         self.pixmap_h = self.pixmap.height()
 
         self.update_display()
+        
+        self.annotator_window = DPsAnnotator(data, self.work_dir, self)
+        self.annotator_window.resize(1000, 600)
+        self.annotator_window.move(660, 100)
+        self.annotator_window.show()
         
         
     def keyPressEvent(self, event):
