@@ -270,6 +270,12 @@ class STEMImageViewer(QWidget):
                 self.select_end_index = [xx, yy]
 
                 self.rect_selected = False
+                
+                xx, yy = self.select_start_index
+
+                idx = xx + self.w_image * yy
+            
+                self.annotator_window.load_image(idx)
             else:
                 if 0 > xx:
                     xx = 0
@@ -294,6 +300,9 @@ class STEMImageViewer(QWidget):
                 if self.select_end_index[0] > self.select_start_index[0] or \
                    self.select_end_index[1] > self.select_start_index[1]: 
                     self.rect_selected = True
+
+        if not self.annotator_window.isVisible():
+            self.annotator_window.show()
 
         self.update_display()
 

@@ -29,6 +29,9 @@ from PyQt5.QtWidgets import (
     QGridLayout,
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QImage, QPixmap
+
+import cv2
 
 
 
@@ -107,8 +110,42 @@ class DPsAnnotator(QWidget):
         self.work_dir = work_dir
         self.viewer_window = viewer
 
+        self.image_index = 0
+
+        self.pixmap = None
+        self.pixmap_original = None
+        
         if data is not None:
             self.num_row, self.num_col, self.h_image, self.w_image = data.shape
             self.num_images = self.num_row * self.num_col 
 
             self.images = data
+            self.load_image(self.image_index)
+
+            
+    def load_image(self, index):
+        """
+        Load a diffraction pattern from a 4D STEM dataset using a 1D index,
+        and display the corresponding diffraction pattern image.
+        """
+
+        self.image_index = index
+
+        xx = self.image_index % self.num_col
+        yy = self.image_index // self.num_col
+
+        self.fname_display.setText(f"Image Index: ({xx:d}, {yy:d})")
+
+        img = cv2.cvtColor(self.images[yy, xx, ...], cv2.COLOR_GRAY2RGB)
+
+        q_img = QImage(img.data, self.w_image, self.h_image, 3*self.w_image,
+                       QImage.Format.Format_RGB888) 
+
+        self.pixmap_original = QPixmap().fromImage(q_img)
+
+        self.image_label_size = self.image_label.size()
+        self.pixmap = self.pixmap_original.scaled(self.image_label_size,
+                                                  Qt.KeepAspectRatio,
+                                                  Qt.SmoothTransformation)
+
+        self.image_label.setPixmap(self.pixmap)
