@@ -3,8 +3,8 @@
 """
 stem_image_viewer.py
 
-This module provides the `STEMImageViewer` class for interactive visualization of
-a virtual STEM image which is a 2D representation derived from this 4D STEM
+This module provides the `STEMImageViewer` class for interactive visualization
+of a virtual STEM image which is a 2D representation derived from this 4D STEM
 data, allowing for intuitive navigation of the spatial dimensions.
 
 It allows users to interact with the displayed image to select specific spatial
@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QColor, QPen
 
 import os
 import numpy as np
@@ -62,11 +62,13 @@ class STEMImageViewer(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setMinimumSize(256, 256)
+        self.image_label.setMouseTracking(True)
+        self.image_label.mouseMoveEvent = self.move_cursor
         
         self.fname_display = QLabel(f"File Name")
         self.fname_display.setAlignment(Qt.AlignCenter)
 
-        self.coord_display = QLabel("Coordinates: (0, 0)")
+        self.coord_display = QLabel("Index: (0, 0)")
         self.coord_display.setAlignment(Qt.AlignCenter)
 
         self.load_btn = QPushButton("Load Data")
@@ -80,6 +82,12 @@ class STEMImageViewer(QWidget):
         self.setLayout(layout)
 
         self.rect_select_mode = False
+        
+        self.select_start_point = (0, 0)
+        
+        self.cursor_pos = None
+        self.pixmap_original = None
+        self.pixmap = None
         
 
     def load_data(self):
@@ -129,6 +137,14 @@ class STEMImageViewer(QWidget):
 
         self.image_label.setPixmap(self.pixmap)
 
+        pixmap_center = self.pixmap.rect().center()
+        
+        self.dx = self.image_label_size.width() // 2 - pixmap_center.x()
+        self.dy = self.image_label_size.height() // 2 - pixmap_center.y()
+
+        self.pixmap_w = self.pixmap.width()
+        self.pixmap_h = self.pixmap.height()
+
         
     def keyPressEvent(self, event):
         """
@@ -138,6 +154,7 @@ class STEMImageViewer(QWidget):
 
         if event.key() == Qt.Key_Shift:
             self.rect_select_mode = True
+            self.update_display()
         super().keyPressEvent(event)
 
 
@@ -146,7 +163,79 @@ class STEMImageViewer(QWidget):
         Handle key release events.
         Deactivate rectangular selection mode when the Shift key is released.
         """
+
         if event.key() == Qt.Key_Shift:
             self.rect_select_mode = False
+            self.update_display()
         super().keyReleaseEvent(event)
         
+
+    def move_cursor(self, event):
+        """
+        Handles mouse movement events.
+        When the cursor moves within the virtual STEM image, a green cross
+        follows the cursor, and the corresponding index of 2D spatial scan
+        point is displayed in a label. If rectangular selection mode is enabled,
+        a green rectangle dynamically follows the cursor.
+        """
+
+        if self.pixmap is None:
+            return
+
+        x, y = event.x(), event.y()
+        self.cursor_pos = (x, y)
+
+        xx, yy = self.pixel2index(x-self.dx, y-self.dy)
+
+        self.coord_display.setText(f"Index: ({xx:d}, {yy:d})")
+        self.update_display()
+        
+
+    def update_display(self):
+        """
+        Dynamically update the virtual STEM image rendering in response to user
+        interactions and state changes
+        """
+
+        if self.pixmap is None:
+            return
+
+        temp_pixmap = self.pixmap.copy()
+        painter = QPainter(temp_pixmap)
+        pen = QPen()
+        pen.setWidth(5)
+
+        s = 10
+
+        x, y = self.select_start_point
+        
+        if self.cursor_pos:
+            pen.setColor(QColor('green'))
+            painter.setPen(pen)
+            x, y = self.cursor_pos
+            x -= self.dx
+            y -= self.dy
+            if self.rect_select_mode:
+                x1, y1 = self.select_start_point
+                w = x - x1
+                h = y - y1
+                painter.drawRect (x1, y1, w, h)
+            else:
+                painter.drawLine (x - s, y, x + s, y)
+                painter.drawLine (x, y - s, x, y + s)
+
+        painter.end()
+        
+        self.image_label.setPixmap(temp_pixmap)
+
+        
+    def pixel2index(self, xp, yp):
+        """
+        Calculate the index of a 2D spatial scan point from virtual STEM image
+        pixel coordinates.
+        """
+
+        x = int(self.w_image * xp / (self.pixmap_w - 1))  
+        y = int(self.h_image * yp / (self.pixmap_h - 1)) 
+
+        return (x, y)
