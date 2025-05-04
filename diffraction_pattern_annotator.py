@@ -70,9 +70,11 @@ class DPsAnnotator(QWidget):
 
         self.spot_size_spin = QSpinBox()
         self.spot_size_spin.setRange(1, 100)
+        self.spot_size_spin.valueChanged.connect(self.update_spot_size)
 
         self.spot_display = QCheckBox("Show Spots")
         self.spot_display.setChecked(True) 
+        self.spot_display.stateChanged.connect(self.toggle_spots)
 
         self.select_chkbox = QCheckBox("Select Mode")
         self.select_chkbox.setChecked(False) 
@@ -117,6 +119,10 @@ class DPsAnnotator(QWidget):
 
         self.image_index = 0
 
+        self.cursor_pos = None
+        self.pixmap = None
+        self.pixmap_original = None
+        
         self.spot_size = 20
         self.spot_size_spin.setValue(self.spot_size)
 
@@ -125,10 +131,6 @@ class DPsAnnotator(QWidget):
 
         self.select_mode = False
         self.show_spots = True
-        
-        self.cursor_pos = None
-        self.pixmap = None
-        self.pixmap_original = None
         
         if data is not None:
             self.num_row, self.num_col, self.h_image, self.w_image = data.shape
@@ -336,6 +338,27 @@ class DPsAnnotator(QWidget):
                 self.coord_list.addItem(f"({xx:6.3f}, {yy:6.3f})")
 
                 self.update_display()
+
+
+    def update_spot_size(self, value):
+        """
+        Adjust the marker size for spots using the spinbox control
+        """
+
+        self.spot_size = value
+        self.update_display()
+
+
+    def toggle_spots(self, state):
+        """
+        Toggle the display of the spot marker based on the checkbox state
+        """
+
+        if state == Qt.Checked:
+            self.show_spots = True
+        else:
+            self.show_spots = False
+        self.update_display()
 
 
     def update_display(self):
