@@ -32,6 +32,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
 
 import cv2
+import numpy as np
 
 
 
@@ -137,6 +138,44 @@ class DPsAnnotator(QWidget):
         self.fname_display.setText(f"Image Index: ({xx:d}, {yy:d})")
 
         img = cv2.cvtColor(self.images[yy, xx, ...], cv2.COLOR_GRAY2RGB)
+
+        q_img = QImage(img.data, self.w_image, self.h_image, 3*self.w_image,
+                       QImage.Format.Format_RGB888) 
+
+        self.pixmap_original = QPixmap().fromImage(q_img)
+
+        self.image_label_size = self.image_label.size()
+        self.pixmap = self.pixmap_original.scaled(self.image_label_size,
+                                                  Qt.KeepAspectRatio,
+                                                  Qt.SmoothTransformation)
+
+        self.image_label.setPixmap(self.pixmap)
+
+
+    def combine_images(self, low_bound, up_bound):
+        """
+        Combine diffraction pattern images for all scan points within a
+        rectangular region specified by `low_bound` and `up_bound`.
+        """
+
+        x1, y1 = low_bound
+        x2, y2 = up_bound
+        x2 += 1
+        y2 += 1
+
+        self.index_range = (x1, x2, y1, y2)
+
+        self.fname_display.setText(f"Image Index Range: ({x1:d}:{x2:d}, {y1:d}:{y2:d})")
+
+        image = np.sum(self.images[y1:y2, x1:x2, ...], axis=(0, 1))
+
+        val_min = np.min(image)
+        val_max = np.max(image)
+
+        image = 255 * (image - val_min) / (val_max - val_min) 
+        image = image.astype(np.uint8)
+
+        img = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
         q_img = QImage(img.data, self.w_image, self.h_image, 3*self.w_image,
                        QImage.Format.Format_RGB888) 

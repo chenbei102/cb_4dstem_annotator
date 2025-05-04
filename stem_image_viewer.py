@@ -300,6 +300,8 @@ class STEMImageViewer(QWidget):
                 if self.select_end_index[0] > self.select_start_index[0] or \
                    self.select_end_index[1] > self.select_start_index[1]: 
                     self.rect_selected = True
+                    self.annotator_window.combine_images(self.select_start_index,
+                                                         self.select_end_index)
 
         if not self.annotator_window.isVisible():
             self.annotator_window.show()
