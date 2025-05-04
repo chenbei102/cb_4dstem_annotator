@@ -60,6 +60,7 @@ class DPsAnnotator(QWidget):
         self.image_label.setMinimumSize(256, 256)
         self.image_label.setMouseTracking(True)
         self.image_label.mouseMoveEvent = self.move_cursor
+        self.image_label.mousePressEvent = self.on_click
 
         self.fname_display = QLabel(f"Image Index: (0, 0)")
         self.fname_display.setAlignment(Qt.AlignCenter)
@@ -119,7 +120,11 @@ class DPsAnnotator(QWidget):
         self.spot_size = 20
         self.spot_size_spin.setValue(self.spot_size)
 
+        self.spots = []
+        self.spot_coords = []
+
         self.select_mode = False
+        self.show_spots = True
         
         self.cursor_pos = None
         self.pixmap = None
@@ -229,6 +234,10 @@ class DPsAnnotator(QWidget):
         self.pixmap_w = self.pixmap.width()
         self.pixmap_h = self.pixmap.height()
 
+        for i, sp in enumerate(self.spots):
+            xx, yy = self.spot_coords[i]
+            sp["coords"] = self.coord2pixel(xx, yy)
+
         self.update_display()
         
 
@@ -286,6 +295,49 @@ class DPsAnnotator(QWidget):
         super().keyReleaseEvent(event)
 
 
+    def on_click(self, event):
+        """
+        Handle click events on the diffraction image based on the selection mode.
+
+        - When selection mode is OFF:
+        Add a circular marker at the clicked location and update the spot lists.
+
+        - When selection mode is ON:
+        Toggle the selection state of a nearby spot if the click occurs close to it.
+        """
+
+        if self.pixmap is None:
+            return
+
+        if event.button() == Qt.LeftButton:
+            x, y = event.x()-self.dx, event.y()-self.dy
+
+            xx, yy = self.pixel2coord(x, y)
+
+            if 1.0 < np.abs(xx) or 1.0 < np.abs(yy):
+                return
+            
+            if self.select_mode:
+                r2 = self.spot_size ** 2
+                for i, sp in enumerate(self.spots):
+                    xp, yp = sp['coords']
+                    dx = x - xp
+                    dy = y - yp
+                    if dx*dx + dy*dy <= r2:
+                        sp['selected'] = not sp['selected']
+                        self.coord_list.item(i).setSelected(sp['selected'])
+                        break
+
+            else:
+                self.spot_coords.append((xx, yy))
+
+                self.spots.append({"coords": (x, y), "selected": False})
+
+                self.coord_list.addItem(f"({xx:6.3f}, {yy:6.3f})")
+
+                self.update_display()
+
+
     def update_display(self):
         """
         Dynamically update the diffraction image rendering in response to user
@@ -301,6 +353,13 @@ class DPsAnnotator(QWidget):
         pen.setWidth(5)
 
         s = self.spot_size
+
+        if self.show_spots:
+            for sp in self.spots:
+                x, y = sp['coords']
+                pen.setColor(QColor('red') if sp.get('selected') else QColor('green'))
+                painter.setPen(pen)
+                painter.drawEllipse(x - s // 2, y - s // 2, s, s)
 
         if self.cursor_pos:
             pen.setColor(QColor('blue'))
@@ -324,3 +383,15 @@ class DPsAnnotator(QWidget):
         y = -(2*yp - self.pixmap_h) / self.pixmap_h  
 
         return (x, y)
+
+
+    def coord2pixel(self, xx, yy):
+        """
+        Calculate the pixel coordinates in diffraction image from normalized
+        coordinates.
+        """
+
+        xp = int(0.5 * self.pixmap_w * (xx + 1.0))
+        yp = int(0.5 * self.pixmap_h * (1.0 - yy))  
+
+        return (xp, yp)
