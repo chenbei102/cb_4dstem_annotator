@@ -75,6 +75,7 @@ class DPsAnnotator(QWidget):
 
         self.select_chkbox = QCheckBox("Select Mode")
         self.select_chkbox.setChecked(False) 
+        self.select_chkbox.stateChanged.connect(self.toggle_select_mode)
 
         self.coord_list = QListWidget()
         self.coord_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -118,6 +119,8 @@ class DPsAnnotator(QWidget):
         self.spot_size = 20
         self.spot_size_spin.setValue(self.spot_size)
 
+        self.select_mode = False
+        
         self.cursor_pos = None
         self.pixmap = None
         self.pixmap_original = None
@@ -246,6 +249,41 @@ class DPsAnnotator(QWidget):
 
         self.coord_display.setText(f"Coordinates: ({xx:6.3f}, {yy:6.3f})")
         self.update_display()
+
+
+    def toggle_select_mode(self, state):
+        """
+        Toggle the select mode based on the checkbox state.
+        """
+
+        if state == Qt.Checked:
+            self.select_mode = True
+        else:
+            self.select_mode = False
+
+
+    def keyPressEvent(self, event):
+        """
+        Handle key press events.
+        Activate selection mode when the Shift key is pressed.
+        """
+
+        if event.key() == Qt.Key_Shift:
+            self.select_mode = True
+            self.select_chkbox.setChecked(True)
+        super().keyPressEvent(event)
+
+        
+    def keyReleaseEvent(self, event):
+        """
+        Handle key release events.
+        Deactivate selection mode when the Shift key is released.
+        """
+
+        if event.key() == Qt.Key_Shift:
+            self.select_mode = False
+            self.select_chkbox.setChecked(False)
+        super().keyReleaseEvent(event)
 
 
     def update_display(self):
