@@ -84,6 +84,7 @@ class STEMImageViewer(QWidget):
         self.rect_select_mode = False
         
         self.select_start_point = (0, 0)
+        self.select_start_index = [0, 0]
         
         self.cursor_pos = None
         self.pixmap_original = None
@@ -170,6 +171,39 @@ class STEMImageViewer(QWidget):
         super().keyReleaseEvent(event)
         
 
+    def resizeEvent(self, event):
+        """
+        Handle resize events.
+        Properly resize the virtual STEM image while maintaining its aspect
+        ratio. Annotation elements are redrawn in their appropriate positions.
+        """
+
+        super().resizeEvent(event)
+        
+        if self.pixmap_original is None:
+            return
+
+        self.image_label_size = self.image_label.size()
+        
+        self.pixmap = self.pixmap_original.scaled(self.image_label_size,
+                                                  Qt.KeepAspectRatio,
+                                                  Qt.SmoothTransformation)
+
+        self.image_label.setPixmap(self.pixmap)
+
+        pixmap_center = self.pixmap.rect().center()
+        
+        self.dx = self.image_label_size.width() // 2 - pixmap_center.x()
+        self.dy = self.image_label_size.height() // 2 - pixmap_center.y()
+
+        self.pixmap_w = self.pixmap.width()
+        self.pixmap_h = self.pixmap.height()
+
+        self.select_start_point = self.index2pixel(*self.select_start_index)
+        
+        self.update_display()
+
+
     def move_cursor(self, event):
         """
         Handles mouse movement events.
@@ -239,3 +273,15 @@ class STEMImageViewer(QWidget):
         y = int(self.h_image * yp / (self.pixmap_h - 1)) 
 
         return (x, y)
+
+
+    def index2pixel(self, xx, yy):
+        """
+        Calculate the virtual STEM image pixel coordinates from index of a 2D
+        spatial scan point.
+        """
+
+        xp = int(self.pixmap_w * xx / (self.w_image - 1))  
+        yp = int(self.pixmap_h * yy / (self.h_image - 1))  
+
+        return (xp, yp)
