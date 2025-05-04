@@ -64,6 +64,7 @@ class STEMImageViewer(QWidget):
         self.image_label.setMinimumSize(256, 256)
         self.image_label.setMouseTracking(True)
         self.image_label.mouseMoveEvent = self.move_cursor
+        self.image_label.mousePressEvent = self.select_point
         
         self.fname_display = QLabel(f"File Name")
         self.fname_display.setAlignment(Qt.AlignCenter)
@@ -82,9 +83,12 @@ class STEMImageViewer(QWidget):
         self.setLayout(layout)
 
         self.rect_select_mode = False
+        self.rect_selected = False
         
         self.select_start_point = (0, 0)
+        self.select_end_point = (0, 0)
         self.select_start_index = [0, 0]
+        self.select_end_index = [0, 0]
         
         self.cursor_pos = None
         self.pixmap_original = None
@@ -146,6 +150,8 @@ class STEMImageViewer(QWidget):
         self.pixmap_w = self.pixmap.width()
         self.pixmap_h = self.pixmap.height()
 
+        self.update_display()
+        
         
     def keyPressEvent(self, event):
         """
@@ -200,6 +206,7 @@ class STEMImageViewer(QWidget):
         self.pixmap_h = self.pixmap.height()
 
         self.select_start_point = self.index2pixel(*self.select_start_index)
+        self.select_end_point = self.index2pixel(*self.select_end_index)
         
         self.update_display()
 
@@ -225,6 +232,66 @@ class STEMImageViewer(QWidget):
         self.update_display()
         
 
+    def select_point(self, event):
+        """
+        Handle selection behavior based on the selection mode.
+
+        - If rectangle selection mode is OFF:
+        Select a single scan point closest to the clicked location in the image.
+
+        - If rectangle selection mode is ON:
+        Select all scan points within the rectangular area defined by the
+        currently selected point and the last selected point.
+        """
+
+        if self.pixmap is None:
+            return
+
+        if event.button() == Qt.LeftButton:
+            x, y = event.x()-self.dx, event.y()-self.dy
+            
+            xx, yy = self.pixel2index(x, y)
+
+            if not self.rect_select_mode:
+                if 0 > xx or self.w_image <= xx or \
+                   0 > yy or self.h_image <= yy:
+                    return
+
+                self.select_start_point = (x, y)
+                self.select_end_point = (x, y)
+
+                self.select_start_index = [xx, yy]
+                self.select_end_index = [xx, yy]
+
+                self.rect_selected = False
+            else:
+                if 0 > xx:
+                    xx = 0
+                elif self.w_image <= xx:
+                    xx = self.w_image - 1
+                
+                if 0 > yy:
+                    yy = 0
+                elif self.h_image <= yy:
+                    yy = self.h_image - 1
+
+                self.select_end_point = (x, y)
+                self.select_end_index = [xx, yy]
+
+                if self.select_end_index[0] < self.select_start_index[0]:
+                    self.select_end_index[0], self.select_start_index[0] = \
+                        self.select_start_index[0], self.select_end_index[0] 
+                if self.select_end_index[1] < self.select_start_index[1]:
+                    self.select_end_index[1], self.select_start_index[1] = \
+                        self.select_start_index[1], self.select_end_index[1] 
+
+                if self.select_end_index[0] > self.select_start_index[0] or \
+                   self.select_end_index[1] > self.select_start_index[1]: 
+                    self.rect_selected = True
+
+        self.update_display()
+
+
     def update_display(self):
         """
         Dynamically update the virtual STEM image rendering in response to user
@@ -243,6 +310,18 @@ class STEMImageViewer(QWidget):
 
         x, y = self.select_start_point
         
+        pen.setColor(QColor('red')) 
+        painter.setPen(pen)
+
+        if self.rect_selected:
+            x1, y1 = self.select_end_point
+            w = x - x1
+            h = y - y1
+            painter.drawRect (x1, y1, w, h)
+        else:
+            painter.drawLine (x - s, y, x + s, y)
+            painter.drawLine (x, y - s, x, y + s)
+
         if self.cursor_pos:
             pen.setColor(QColor('green'))
             painter.setPen(pen)
