@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QColor, QPen
 
 import cv2
 import numpy as np
@@ -58,6 +58,8 @@ class DPsAnnotator(QWidget):
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setMinimumSize(256, 256)
+        self.image_label.setMouseTracking(True)
+        self.image_label.mouseMoveEvent = self.move_cursor
 
         self.fname_display = QLabel(f"Image Index: (0, 0)")
         self.fname_display.setAlignment(Qt.AlignCenter)
@@ -113,6 +115,10 @@ class DPsAnnotator(QWidget):
 
         self.image_index = 0
 
+        self.spot_size = 20
+        self.spot_size_spin.setValue(self.spot_size)
+
+        self.cursor_pos = None
         self.pixmap = None
         self.pixmap_original = None
         
@@ -151,6 +157,8 @@ class DPsAnnotator(QWidget):
 
         self.image_label.setPixmap(self.pixmap)
 
+        self.update_display()
+
 
     def combine_images(self, low_bound, up_bound):
         """
@@ -188,3 +196,93 @@ class DPsAnnotator(QWidget):
                                                   Qt.SmoothTransformation)
 
         self.image_label.setPixmap(self.pixmap)
+
+        self.update_display()
+        
+
+    def resizeEvent(self, event):
+        """
+        Handle resize events.
+        Properly resize the diffraction image while maintaining its aspect
+        ratio. Annotation elements are redrawn in their appropriate positions.
+        """
+
+        super().resizeEvent(event)
+
+        if self.pixmap_original is None:
+            return
+        
+        self.image_label_size = self.image_label.size()
+        
+        self.pixmap = self.pixmap_original.scaled(self.image_label_size,
+                                                  Qt.KeepAspectRatio,
+                                                  Qt.SmoothTransformation)
+
+        pixmap_center = self.pixmap.rect().center()
+        
+        self.dx = self.image_label_size.width() // 2 - pixmap_center.x()
+        self.dy = self.image_label_size.height() // 2 - pixmap_center.y()
+
+        self.pixmap_w = self.pixmap.width()
+        self.pixmap_h = self.pixmap.height()
+
+        self.update_display()
+        
+
+    def move_cursor(self, event):
+        """
+        Handle mouse movement within the diffraction image.
+        A circle dynamically follows the cursor, and a label displays
+        the corresponding normalized coordinates in real-time.
+        """
+
+        if self.pixmap is None:
+            return
+
+        x, y = event.x(), event.y()
+        self.cursor_pos = (x, y)
+
+        xx, yy = self.pixel2coord(x-self.dx, y-self.dy)
+
+        self.coord_display.setText(f"Coordinates: ({xx:6.3f}, {yy:6.3f})")
+        self.update_display()
+
+
+    def update_display(self):
+        """
+        Dynamically update the diffraction image rendering in response to user
+        interactions and state changes
+        """
+
+        if self.pixmap is None:
+            return
+
+        temp_pixmap = self.pixmap.copy()
+        painter = QPainter(temp_pixmap)
+        pen = QPen()
+        pen.setWidth(5)
+
+        s = self.spot_size
+
+        if self.cursor_pos:
+            pen.setColor(QColor('blue'))
+            painter.setPen(pen)
+            x, y = self.cursor_pos
+            x -= self.dx
+            y -= self.dy
+            painter.drawEllipse(x - s // 2, y - s // 2, s, s)
+
+        painter.end()
+        self.image_label.setPixmap(temp_pixmap)
+
+
+    def pixel2coord(self, xp, yp):
+        """
+        Calculate the normalized coordinates from diffraction image pixel
+        coordinates.
+        """
+
+        x = (2*xp - self.pixmap_w) / self.pixmap_w  
+        y = -(2*yp - self.pixmap_h) / self.pixmap_h  
+
+        return (x, y)

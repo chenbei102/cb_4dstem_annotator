@@ -219,7 +219,7 @@ class STEMImageViewer(QWidget):
 
     def move_cursor(self, event):
         """
-        Handles mouse movement events.
+        Handle mouse movement events.
         When the cursor moves within the virtual STEM image, a green cross
         follows the cursor, and the corresponding index of 2D spatial scan
         point is displayed in a label. If rectangular selection mode is enabled,
