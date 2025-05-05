@@ -43,3 +43,44 @@ Next, use `pip` to install the required dependencies:
 ```bash
 pip install numpy opencv-python PyQt5 QtPy
 ```
+## Clone the Repository
+
+To get started, clone the repository:
+
+```bash
+git clone https://github.com/chenbei102/cb_4dstem_annotator.git
+cd cb_4dstem_annotator
+```
+
+## Usage
+
+### Data Preparation
+
+Your 4D STEM data should be saved as a NumPy `.npz` file. You can use the following Python snippet to save your data:
+
+```python
+import numpy as np
+
+# Replace with your actual 4D STEM data
+data = ... 
+
+# Specify the file path where you want to save the data
+file_path = "your_data.npz" 
+
+np.savez(file_path, data=data)
+```
+
+### Launch the Virtual STEM Viewer
+
+Run the following command:
+
+```bash
+python cb_4dstem_annotator.py
+```
+
+Once the viewer is open, click the **"Load Data"** button, and select the `.npz` file containing your 4D STEM data.
+
+**Note:** If your dataset is large, it may take some time to load. After the data is successfully loaded, you will see:
+
+- A virtual STEM image in the viewer window.
+- A diffraction pattern image in the annotator window.
