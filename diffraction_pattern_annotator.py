@@ -88,10 +88,12 @@ class DPsAnnotator(QWidget):
         self.del_btn.clicked.connect(self.delete_selected)
 
         self.prev_btn = QPushButton("Previous Image")
+        self.prev_btn.clicked.connect(self.load_prev_image)
 
         self.export_btn = QPushButton("Export Data")
 
         self.next_btn = QPushButton("Next Image")
+        self.next_btn.clicked.connect(self.load_next_image)
 
         main_layout = QGridLayout()
 
@@ -396,6 +398,48 @@ class DPsAnnotator(QWidget):
             self.coord_list.takeItem(idx)
 
         self.update_display()
+
+
+    def load_prev_image(self):
+        """
+        Load the previous diffraction pattern image from the 4D STEM dataset
+        """
+
+        if self.pixmap is None:
+            return
+
+        self.image_index -= 1
+        if self.image_index < 0:
+            self.image_index = self.num_images - 1
+        self.load_image(self.image_index)
+
+        if self.viewer_window is not None:
+            xx = self.image_index % self.num_col
+            yy = self.image_index // self.num_col
+            self.viewer_window.select_index(xx, yy)
+            if not self.viewer_window.isVisible():
+                self.viewer_window.show()
+
+
+    def load_next_image(self):
+        """
+        Load the next diffraction pattern image from the 4D STEM dataset
+        """
+
+        if self.pixmap is None:
+            return
+
+        self.image_index += 1
+        if self.image_index >= self.num_images:
+            self.image_index = 0
+        self.load_image(self.image_index)
+
+        if self.viewer_window is not None:
+            xx = self.image_index % self.num_col
+            yy = self.image_index // self.num_col
+            self.viewer_window.select_index(xx, yy)
+            if not self.viewer_window.isVisible():
+                self.viewer_window.show()
 
 
     def update_display(self):

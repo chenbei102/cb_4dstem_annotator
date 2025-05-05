@@ -321,6 +321,17 @@ class STEMImageViewer(QWidget):
         self.update_display()
 
 
+    def select_index(self, xx, yy):
+        """
+        Select a scan point using its 2D index coordinates.
+        """
+        
+        self.select_start_index = (xx, yy)
+        xp, yp = self.index2pixel(xx, yy)
+        self.select_start_point = (xp, yp)
+        self.update_display()
+        
+
     def update_display(self):
         """
         Dynamically update the virtual STEM image rendering in response to user
