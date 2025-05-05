@@ -84,3 +84,17 @@ Once the viewer is open, click the **"Load Data"** button, and select the `.npz`
 
 - A virtual STEM image in the viewer window.
 - A diffraction pattern image in the annotator window.
+
+### Selecting Scan Points or Regions
+
+- **Single Scan Point:** Click on the virtual STEM image to select a single spatial scan point.
+- **Rectangular Region:** Hold **Shift** and click a second point to define a rectangular region of interest.
+
+### Annotating in the Diffraction Pattern Image
+
+- **Add Annotations:** Click on the diffraction pattern image to annotate bright spots with circular markers.
+- **Selection Mode:** Hold **Shift** to activate selection mode. In this mode, if a click occurs close to a nearby spot, the selection state of that spot will toggle.
+
+### Exporting Annotated Spot Coordinates
+
+-  Click the "**Export Data**" button to save the coordinates of the annotated spots to files. A separate output file will be generated for each selected diffraction pattern image.
