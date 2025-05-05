@@ -82,8 +82,10 @@ class DPsAnnotator(QWidget):
 
         self.coord_list = QListWidget()
         self.coord_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.coord_list.itemSelectionChanged.connect(self.highlight_spots)
 
         self.del_btn = QPushButton("Delete Selected")
+        self.del_btn.clicked.connect(self.delete_selected)
 
         self.prev_btn = QPushButton("Previous Image")
 
@@ -358,6 +360,41 @@ class DPsAnnotator(QWidget):
             self.show_spots = True
         else:
             self.show_spots = False
+        self.update_display()
+
+
+    def highlight_spots(self):
+        """
+        Highlight the spot markers that are selected in the list widget
+        """
+
+        if 0 == len(self.spot_coords):
+            return
+        
+        selected_indexes = [item.row() for item in self.coord_list.selectedIndexes()]
+
+        for i, sp in enumerate(self.spots):
+            sp["selected"] = i in selected_indexes
+
+        self.update_display()
+
+
+    def delete_selected(self):
+        """
+        Delete the selected spot markers and refresh all related spot data
+        structures
+        """
+
+        if 0 == len(self.spot_coords):
+            return
+
+        selected_indexes = sorted([item.row() for item in self.coord_list.selectedIndexes()], reverse=True)
+
+        for idx in selected_indexes:
+            del self.spots[idx]
+            del self.spot_coords[idx]
+            self.coord_list.takeItem(idx)
+
         self.update_display()
 
 

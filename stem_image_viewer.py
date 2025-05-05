@@ -95,6 +95,8 @@ class STEMImageViewer(QWidget):
         self.pixmap_original = None
         self.pixmap = None
         
+        self.annotator_window = None
+        
 
     def load_data(self):
         """
@@ -151,8 +153,18 @@ class STEMImageViewer(QWidget):
         self.pixmap_w = self.pixmap.width()
         self.pixmap_h = self.pixmap.height()
 
+        self.rect_selected = False
+        
+        self.select_start_point = (0, 0)
+        self.select_end_point = (0, 0)
+        self.select_start_index = [0, 0]
+        self.select_end_index = [0, 0]
+
         self.update_display()
         
+        if self.annotator_window is not None:
+            self.annotator_window.close()
+            
         self.annotator_window = DPsAnnotator(data, self.work_dir, self)
         self.annotator_window.resize(1000, 600)
         self.annotator_window.move(660, 100)
