@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QGridLayout,
-    QFileDialog,
+    QFileDialog
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QColor, QPen

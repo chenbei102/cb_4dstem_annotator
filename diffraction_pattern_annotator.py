@@ -27,12 +27,14 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QPushButton,
     QGridLayout,
+    QMessageBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QColor, QPen
 
 import cv2
 import numpy as np
+import os
 
 
 
@@ -91,6 +93,7 @@ class DPsAnnotator(QWidget):
         self.prev_btn.clicked.connect(self.load_prev_image)
 
         self.export_btn = QPushButton("Export Data")
+        self.export_btn.clicked.connect(self.export_data)
 
         self.next_btn = QPushButton("Next Image")
         self.next_btn.clicked.connect(self.load_next_image)
@@ -135,6 +138,7 @@ class DPsAnnotator(QWidget):
 
         self.select_mode = False
         self.show_spots = True
+        self.batch_output = False
         
         if data is not None:
             self.num_row, self.num_col, self.h_image, self.w_image = data.shape
@@ -156,6 +160,8 @@ class DPsAnnotator(QWidget):
         yy = self.image_index // self.num_col
 
         self.fname_display.setText(f"Image Index: ({xx:d}, {yy:d})")
+
+        self.batch_output = False
 
         img = cv2.cvtColor(self.images[yy, xx, ...], cv2.COLOR_GRAY2RGB)
 
@@ -186,6 +192,7 @@ class DPsAnnotator(QWidget):
         y2 += 1
 
         self.index_range = (x1, x2, y1, y2)
+        self.batch_output = True
 
         self.fname_display.setText(f"Image Index Range: ({x1:d}:{x2:d}, {y1:d}:{y2:d})")
 
@@ -442,6 +449,65 @@ class DPsAnnotator(QWidget):
                 self.viewer_window.show()
 
 
+    def save_spot_coords(self, index):
+        """
+        Save the coordinates of the annotated spots to a text file
+        """
+
+        fname = f"spot_coords_{index:d}.txt"
+        fpath = os.path.join(self.work_dir, fname)
+        
+        if os.path.exists(fpath):
+            overwrite_dialog = QMessageBox()
+            overwrite_dialog.setIcon(QMessageBox.Warning)
+            overwrite_dialog.setText(f"The file '{fname}' already exists.")
+            overwrite_dialog.setInformativeText("Do you want to overwrite it?")
+            overwrite_dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            overwrite_dialog.setDefaultButton(QMessageBox.No)
+            response = overwrite_dialog.exec_()
+
+            if response == QMessageBox.No:
+                return 0
+
+        with open(fpath, "w") as f:
+            for xx, yy in self.spot_coords:
+                f.write(f"{xx:10.3e}, {yy:10.3e}\n")
+
+        return 1
+
+
+    def export_data(self):
+        """
+        Export the coordinates of annotated spots. A separate output file will
+        be generated for each selected diffraction pattern image.
+        """
+
+        if 0 == len(self.spot_coords):
+            return
+
+        cnt = 0
+        
+        if self.batch_output:
+
+            x1, x2, y1, y2 = self.index_range
+
+            for i in range(x1, x2):
+                for j in range(y1, y2):
+                    idx = i + self.num_col * j
+                    cnt += self.save_spot_coords(idx)
+
+            info_txt = f"{cnt:d} spot coordinate files \nwere exported."
+        
+        else:
+
+            cnt += self.save_spot_coords(self.image_index)
+
+            info_txt = "A spot coordinate file \nwas exported."
+                
+        if 0 < cnt:
+            QMessageBox.information(self, "Export Successful", info_txt)
+
+            
     def update_display(self):
         """
         Dynamically update the diffraction image rendering in response to user
